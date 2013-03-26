@@ -11,3 +11,15 @@
 *.lai
 *.la
 *.a
+
+# Visual Studio generated files
+*.ncb
+*.opt
+*.plg
+*.obj
+*.ilk
+*.pdb
+*.idb
+*.exe
+Debug
+Release
