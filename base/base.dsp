@@ -86,11 +86,19 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\CSNode.cpp
+SOURCE=.\CSTreeNode.cpp
 # End Source File
 # Begin Source File
 
 SOURCE=.\main.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\TreeNode.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\Utils.cpp
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -102,12 +110,32 @@ SOURCE=.\config.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\CSNode.h
+SOURCE=.\CSTreeNode.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\test.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\TreeNode.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\Utils.h
 # End Source File
 # End Group
 # Begin Group "Resource Files"
 
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
+# End Group
+# Begin Group "Test Files"
+
+# PROP Default_Filter ".cpp"
+# Begin Source File
+
+SOURCE=.\TestCSTreeNode.cpp
+# End Source File
 # End Group
 # End Target
 # End Project
