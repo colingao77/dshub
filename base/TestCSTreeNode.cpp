@@ -37,13 +37,14 @@ static CSTreeNode* CreateCSTree(int a[][MAX_CHILD_COUNT], int n)
 	}
 
 	//2. build relationships in TreeNodes
-	PCSTreeNode pNode = NULL, pChild = NULL;
+	PCSTreeNode pParent = NULL, pNode = NULL, pChild = NULL;
 	for(i = 0; i < n; i++)
 	{
-		pNode = table[i];		
+		pParent = pNode = table[i];		
 		for(j = 0; j < MAX_CHILD_COUNT && a[i][j] >= 0; j++)
 		{
 			pChild = table[a[i][j]];
+			pChild->parent = pParent;
 			if(j == 0)
 			{
 				pNode->firstchild = pChild;
@@ -62,7 +63,8 @@ static CSTreeNode* CreateCSTree(int a[][MAX_CHILD_COUNT], int n)
 static bool PrintEnumProc(TreeNode* pNode, void* lParam)
 {
 	int val = (int)pNode->GetData();
-	printf("%d ", val);
+	CSTreeNode* pParent = ((CSTreeNode*)pNode)->parent;
+	printf("%d(p=%d) ", val, ((pParent == NULL) ? -1 : (int)pParent->GetData()));
 	return true;
 }
 
@@ -83,13 +85,15 @@ void TestCSTreeNode()
 	};
 	CSTreeNode* pRoot = CreateCSTree(a, 4);
 
-	//show the tree in preorder
+	//print tree in pre-order
 	pRoot->PreOrderEnum(PrintEnumProc, NULL);
 	printf("\n");
 
+	//print tree in post-order
 	pRoot->PostOrderEnum(PrintEnumProc, NULL);
 	printf("\n");
 
+	//print tree in bfs-order
 	pRoot->BFSEnum(PrintEnumProc, NULL);
 	printf("\n");
 	

@@ -4,8 +4,12 @@
 
 int main(int argc, char* argv[])
 {
-	printf("Hello, World!\n");
+	printf("main start\n\n");
 
 	TestCSTreeNode();
+	TestGraphAdjArray();
+	TestGraphAdjList();
+
+	printf("\nmain end\n");
 	return 0;
 }

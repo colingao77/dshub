@@ -90,6 +90,18 @@ SOURCE=.\CSTreeNode.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\Graph.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\GraphAdjArray.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\GraphAdjList.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\main.cpp
 # End Source File
 # Begin Source File
@@ -114,6 +126,18 @@ SOURCE=.\CSTreeNode.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\Graph.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\GraphAdjArray.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\GraphAdjList.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\test.h
 # End Source File
 # Begin Source File
@@ -135,6 +159,14 @@ SOURCE=.\Utils.h
 # Begin Source File
 
 SOURCE=.\TestCSTreeNode.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\TestGraphAdjArray.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\TestGraphAdjList.cpp
 # End Source File
 # End Group
 # End Target

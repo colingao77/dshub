@@ -8,4 +8,6 @@
 #  pragma warning( disable : 4786 )
 #endif
 
+#define INFINITY	0x7FFFFFFF
+
 #endif
