@@ -4,6 +4,7 @@
 #include "config.h"
 #include "Graph.h"
 #include <stdio.h>
+#include "CSTreeNode.h"
 
 class GraphAdjArray
 {
@@ -23,11 +24,13 @@ public:
 	bool InitByMatrix(FILE* stream);
 	bool InitByEdges(FILE* stream);
 	
-
 	//traverse
 	void DFSTraverse(GraphEnumProc pProc, void* lParam);
 	void BFSTraverse(GraphEnumProc pProc, void* lParam);
 
+	//generate forest by DFS traverse
+	void DFSForest(PCSTreeNode* t);
+	void DFSTree(int v, PCSTreeNode t, bool* visited);
 
 	//Get the vertex information by vertex index
 	virtual bool GetVertex(int vertex, Vertex* pVertexInfo);

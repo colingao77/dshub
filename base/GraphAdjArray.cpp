@@ -1,6 +1,7 @@
 #include "GraphAdjArray.h"
 #include <string.h>
 #include <queue>
+#include <assert.h>
 
 GraphAdjArray::GraphAdjArray() : kind(UDG), vexnum(0), arcnum(0)
 {
@@ -360,4 +361,72 @@ bool GraphAdjArray::DeleteEdge(int from, int to)
 {
 	arcs[from][to].cost = 0;
 	return true;
+}
+
+void GraphAdjArray::DFSForest(PCSTreeNode* t)
+{
+	if(vexnum <= 0)
+	{
+		return;
+	}
+
+	bool* visited = new bool[vexnum];
+	memset(visited, 0, sizeof(bool) * vexnum);
+
+	CSTreeNode *p = NULL, *q = NULL;
+	for(int v = 0; v < vexnum; v++)
+	{
+		if(visited[v])
+		{
+			continue;
+		}
+
+		p = new CSTreeNode(&vexs[v]);
+		if(*t == NULL)
+		{
+			*t = p;
+		}
+		else
+		{
+			assert(q != NULL);
+			q->nextsibling = p;
+		}
+		q = p;
+
+		DFSTree(v, p, visited);
+	}
+
+	delete []visited;
+}
+
+//Traverse the graph from vertex v
+void GraphAdjArray::DFSTree(int v, PCSTreeNode t, bool* visited)
+{
+	visited[v] = true;
+	bool first = true;
+
+	CSTreeNode *p = NULL, *q = NULL;
+	int w;
+	for(w = FirstAdjVertex(v); w >= 0; w = NextAdjVertex(v, w))
+	{
+		if(visited[w])
+		{
+			continue;
+		}
+
+		p = new CSTreeNode(&vexs[w]);
+		if(first)
+		{
+			t->firstchild = p;
+			first = false;
+		}
+		else
+		{
+			assert(q != NULL);
+			q->nextsibling = p;
+		}
+		q = p;
+
+		DFSTree(w, p, visited);
+	}
 }
