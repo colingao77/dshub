@@ -4,35 +4,20 @@
 #include <string.h>
 #include <stdio.h>
 
-static bool InitGraph(GraphAdjList* pGraph, const char* name, int initMode)
+typedef struct InitParam
 {
-	bool ret = false;
+	const char* filename;
+	InitMode mode;
+}InitParam;
 
-	FILE* input = NULL;
-	do 
-	{
-		input = fopen(name, "rb");
-		if(input == NULL)
-		{
-			break;
-		}
+static InitParam params[] = 
+{
+	{"./data/matrix1.in", MATRIX},
+	{"./data/edge1.in", EDGE},
 
-		if(initMode == MATRIX)
-		{
-			ret = pGraph->InitByMatrix(input);
-		}
-		else if(initMode == EDGE)
-		{
-			ret = pGraph->InitByEdges(input);
-		}
-	} while (false);
-	
-	if(input)
-	{
-		fclose(input);
-	}
-	return ret;
-}
+	{"./data/matrix2.in", MATRIX},
+	{"./data/edge2.in", EDGE}
+};
 
 void TestGraphAdjList()
 {
@@ -41,13 +26,22 @@ void TestGraphAdjList()
 		return;
 	}
 
-	GraphAdjList graph1;
-	InitGraph(&graph1, "./data/matrix1.in", MATRIX);
-	graph1.Print();
+	for(int i = 0; i < COUNT_OF(params); i++)
+	{
+		GraphAdjList graph1;
+		graph1.Init(params[i].filename, params[i].mode);
 
-	GraphAdjList graph2;
-	InitGraph(&graph2, "./data/edge1.in", EDGE);
-	graph2.Print(true);
+		printf("Initialized by %s\n", ((params[i].mode == MATRIX) ? "MATRIX" : "EDGE"));
+		graph1.Print();
+
+		printf("DFS: ");
+		graph1.DFSTraverse(PrintGraphProc, NULL);
+		printf("\n");
+
+		printf("BFS: ");
+		graph1.BFSTraverse(PrintGraphProc, NULL);
+		printf("\n");
+	}
 	
 	PrintSep(__FILE__);
 }

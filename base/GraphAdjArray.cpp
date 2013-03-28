@@ -13,6 +13,36 @@ GraphAdjArray::~GraphAdjArray()
 
 }
 
+bool GraphAdjArray::Init(const char* filename, InitMode mode)
+{
+	bool ret = false;
+	
+	FILE* input = NULL;
+	do 
+	{
+		input = fopen(filename, "rb");
+		if(input == NULL)
+		{
+			break;
+		}
+		
+		if(mode == MATRIX)
+		{
+			ret = InitByMatrix(input);
+		}
+		else if(mode == EDGE)
+		{
+			ret = InitByEdges(input);
+		}
+	} while (false);
+	
+	if(input)
+	{
+		fclose(input);
+	}
+	return ret;
+}
+
 bool GraphAdjArray::InitByMatrix(FILE* stream)
 {
 	if(stream == NULL)
@@ -21,40 +51,43 @@ bool GraphAdjArray::InitByMatrix(FILE* stream)
 		return false;
 	}
 
-	int ret, val, i, j;
+	int ret, m, i, j, cost;
 	char c;
-	ret = fscanf(stream, "%d%c", &val, &c);
+	ret = fscanf(stream, "%d%c", &m, &c);
 	if(ret != 2)
 	{
 		printf("invalid format: vertex num invalid\n");
 		return false;
 	}
 
-	for(i = 0; i < val; i++)
+	Vertex vertex;
+	for(i = 0; i < m; i++)
 	{
-		for(j = 0; j < val; j++)
+		vertex.index = i;
+		PutVertex(&vertex);
+
+		for(j = 0; j < m; j++)
 		{
-			ret = fscanf(stream, "%d", &(arcs[i][j].cost));
+			ret = fscanf(stream, "%d", &cost);
 			if(ret != 1)
 			{
 				printf("invalid format: cell(%d, %d) invalid\n");
 				return false;
 			}
+			
+			//insert one edge
+			InsertEdge(i, j, cost);
+
 			ret = fscanf(stream, "%c", &c);
 			if(ret != 1)
 			{
 				printf("invalid format: no trailing char after cell(%d, %d)\n", i, j);
 				return false;
 			}
-
-			if(arcs[i][j].cost != 0)
-			{
-				arcnum++;
-			}
 		}
 	}
 
-	vexnum = val;
+	vexnum = m;
 
 	return true;
 }
@@ -79,13 +112,14 @@ bool GraphAdjArray::InitByEdges(FILE* stream)
 	}
 	fscanf(stream, "%c", &c);
 
+	Vertex vertex;
 	for(i = 0; i < m; i++)
 	{
-		for(j = 0; j < m; j++)
-		{
-			arcs[i][j].cost = 0;
-		}
+		vertex.index = i;
+		PutVertex(&vertex);
 	}
+
+	memset(arcs, 0, sizeof(arcs));
 
 	for(i = 0; i < n; i++)
 	{
@@ -97,8 +131,8 @@ bool GraphAdjArray::InitByEdges(FILE* stream)
 		}
 		fscanf(stream, "%c", &c);
 
-		arcs[x][y].cost = cost;
-		arcs[y][x].cost = cost;
+		InsertEdge(x, y, cost);
+		InsertEdge(y, x, cost);
 	}
 
 	//set the cost to infinity when the graph is network
@@ -150,7 +184,7 @@ void GraphAdjArray::Print()
 	}
 }
 
-void GraphAdjArray::DFS(GraphEnumProc pProc, void* lParam)
+void GraphAdjArray::DFSTraverse(GraphEnumProc pProc, void* lParam)
 {
 	if(vexnum <= 0)
 	{
@@ -170,22 +204,24 @@ void GraphAdjArray::DFS(GraphEnumProc pProc, void* lParam)
 			return;
 		}
 	}
+
+	delete [] visited;
 }
 
 bool GraphAdjArray::DFS(GraphEnumProc pProc, void* lParam, int vertex, bool* visited)
 {
 	visited[vertex] = true;
-	if(!pProc(vertex, lParam))
+	if(!pProc(&vexs[vertex], lParam))
 	{
 		return false;
 	}
 
-	int i;
-	for(i = 0; i < vexnum; i++)
+	int w;
+	for(w = FirstAdjVertex(vertex); w >= 0; w = NextAdjVertex(vertex, w))
 	{
-		if(arcs[vertex][i].cost != 0 && !visited[i])
+		if(!visited[w])
 		{
-			if(!DFS(pProc, lParam, i, visited))
+			if(!DFS(pProc, lParam, w, visited))
 			{
 				return false;
 			}
@@ -194,7 +230,7 @@ bool GraphAdjArray::DFS(GraphEnumProc pProc, void* lParam, int vertex, bool* vis
 	return true;
 }
 
-void GraphAdjArray::BFS(GraphEnumProc pProc, void* lParam)
+void GraphAdjArray::BFSTraverse(GraphEnumProc pProc, void* lParam)
 {
 	if(vexnum <= 0)
 	{
@@ -202,40 +238,126 @@ void GraphAdjArray::BFS(GraphEnumProc pProc, void* lParam)
 	}
 	bool* visited = new bool[vexnum];
 	memset(visited, 0, sizeof(bool) * vexnum);
-
+	
 	std::queue<int> que;
-	int i, j, u;
-	for(i = 0; i <vexnum; i++)
+	
+	int v, u, w;
+	for(v = 0; v < vexnum; v++)
 	{
-		if(visited[i])
+		if(visited[v])
 		{
 			continue;
 		}
-		visited[i] = true;
-		if(!pProc(i, lParam))
+
+		//visit before the vertex is enqueued
+		visited[v] = true;
+		if(!pProc(&vexs[v], lParam))
 		{
 			return;
 		}
+		//enqueue
+		que.push(v);
 
-		que.push(i);
+
 		while(!que.empty())
 		{
+			//the vertex must be visited already
 			u = que.front();
 			que.pop();
 
-			for(j = 0; j < vexnum; j++)
+			//push all the adjacent vertices of "u" to the queue
+			for(w = FirstAdjVertex(u); w >= 0; w = NextAdjVertex(u, w))
 			{
-				if(arcs[u][j].cost != 0 && !visited[j])
+				if(!visited[w])
 				{
-					visited[j] = true;
-					if(!pProc(j, lParam))
+					//visit before the vertex is enqueued
+					visited[w] = true;
+					if(!pProc(&vexs[w], lParam))
 					{
 						return;
 					}
-					que.push(j);
+					//enqueue
+					que.push(w);
 				}
 			}
 		}
 	}
+
+	delete visited;
 }
 
+//Get the vertex information by vertex index
+bool GraphAdjArray::GetVertex(int vertex, Vertex* pVertexInfo)
+{
+	if(vertex < 0 || vertex >= vexnum)
+	{
+		return false;
+	}
+	*pVertexInfo = vexs[vertex];
+	return true;
+}
+
+//Put the vertex into the graph
+int GraphAdjArray::PutVertex(const Vertex* pVertexInfo)
+{
+	vexs[vexnum] = *pVertexInfo;
+	vexnum++;
+	return pVertexInfo->index;
+}
+
+//Find the first adjacent vertex index of the specified "vertex", -1 if no such vertex
+int GraphAdjArray::FirstAdjVertex(int vertex)
+{
+	if(vertex < 0 || vertex >= vexnum)
+	{
+		return -1;
+	}
+	for(int i = 0; i < vexnum; i++)
+	{
+		if(arcs[vertex][i].cost != 0)
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
+//Find the next adjacent vertex index of the specified "vertex", relative to vertex "w"
+//-1 if no such vertex
+int GraphAdjArray::NextAdjVertex(int vertex, int w)
+{
+	if(vertex < 0 || vertex >= vexnum)
+	{
+		return -1;
+	}
+	for(int i = w + 1; i < vexnum; i++)
+	{
+		if(arcs[vertex][i].cost != 0)
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
+//Insert edge into the graph
+bool GraphAdjArray::InsertEdge(const Edge* pEdge)
+{
+	arcs[pEdge->from][pEdge->to] = *pEdge;
+	return true;
+}
+
+bool GraphAdjArray::InsertEdge(int from, int to, int cost)
+{
+	arcs[from][to].from = from;
+	arcs[from][to].to = to;
+	arcs[from][to].cost = cost;
+	return true;
+}
+
+//Delete edge from the graph
+bool GraphAdjArray::DeleteEdge(int from, int to)
+{
+	arcs[from][to].cost = 0;
+	return true;
+}

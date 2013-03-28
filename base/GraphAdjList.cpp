@@ -1,5 +1,6 @@
 #include "GraphAdjList.h"
 #include <string.h>
+#include <queue>
 
 GraphAdjList::GraphAdjList() : kind(UDG), vexnum(0), arcnum(0)
 {
@@ -21,6 +22,36 @@ GraphAdjList::~GraphAdjList()
 	}
 }
 
+bool GraphAdjList::Init(const char* filename, InitMode mode)
+{
+	bool ret = false;
+	
+	FILE* input = NULL;
+	do 
+	{
+		input = fopen(filename, "rb");
+		if(input == NULL)
+		{
+			break;
+		}
+		
+		if(mode == MATRIX)
+		{
+			ret = InitByMatrix(input);
+		}
+		else if(mode == EDGE)
+		{
+			ret = InitByEdges(input);
+		}
+	} while (false);
+	
+	if(input)
+	{
+		fclose(input);
+	}
+	return ret;
+}
+
 bool GraphAdjList::InitByMatrix(FILE* stream)
 {
 	if(stream == NULL)
@@ -29,20 +60,22 @@ bool GraphAdjList::InitByMatrix(FILE* stream)
 		return false;
 	}
 	
-	int ret, val, i, j, cost;
+	int ret, m, i, j, cost;
 	char c;
-	ret = fscanf(stream, "%d%c", &val, &c);
+	ret = fscanf(stream, "%d%c", &m, &c);
 	if(ret != 2)
 	{
 		printf("invalid format: vertex num invalid\n");
 		return false;
 	}
 	
-	for(i = 0; i < val; i++)
+	Vertex vertex;
+	for(i = 0; i < m; i++)
 	{
-		vexs[i].vertex = i;
+		vertex.index = i;
+		PutVertex(&vertex);
 
-		for(j = 0; j < val; j++)
+		for(j = 0; j < m; j++)
 		{
 			ret = fscanf(stream, "%d", &cost);
 			if(ret != 1)
@@ -62,11 +95,14 @@ bool GraphAdjList::InitByMatrix(FILE* stream)
 				continue;
 			}
 
-			InsertArc(i, j, cost);
+			InsertEdge(i, j, cost);
 		}
 	}
 	
-	vexnum = val;
+	vexnum = m;
+
+	//optional: reverse the list to make sure the adjacent list has the same order with input data
+	ReverseAdjList();
 	
 	return true;
 }
@@ -90,6 +126,13 @@ bool GraphAdjList::InitByEdges(FILE* stream)
 	}
 	fscanf(stream, "%c", &c);
 	
+	Vertex vertex;
+	for(i = 0; i < m; i++)
+	{
+		vertex.index = i;
+		PutVertex(&vertex);
+	}
+
 	for(i = 0; i < n; i++)
 	{
 		ret = fscanf(stream, "%d %d %d", &x, &y, &cost);
@@ -100,11 +143,12 @@ bool GraphAdjList::InitByEdges(FILE* stream)
 		}
 		fscanf(stream, "%c", &c);
 
-		InsertArc(x, y, cost);
-		InsertArc(y, x, cost);
+		InsertEdge(x, y, cost);
+		InsertEdge(y, x, cost);
 	}
-	
-	vexnum = m;
+
+	//optional: reverse the list to make sure the adjacent list has the same order with input data
+	ReverseAdjList();
 	
 	return true;
 }
@@ -129,9 +173,9 @@ void GraphAdjList::Print(bool all)
 		ArcNode* pArc = vexs[i].firstarc;
 		while(pArc != NULL)
 		{
-			if((vexs[i].vertex <= pArc->adjvex) || all)
+			if((vexs[i].vertexinfo.index <= pArc->arcinfo.to) || all)
 			{
-				printf("%2d %2d %2d\n", vexs[i].vertex, pArc->adjvex, pArc->arcinfo.cost);
+				printf("%2d %2d %2d\n", vexs[i].vertexinfo.index, pArc->arcinfo.to, pArc->arcinfo.cost);
 			}
 			
 			pArc = pArc->nextarc;
@@ -139,29 +183,213 @@ void GraphAdjList::Print(bool all)
 	}
 }
 
-void GraphAdjList::InsertArc(int from, int to, int cost)
+//Get the vertex information by vertex index
+bool GraphAdjList::GetVertex(int vertex, Vertex* pVertexInfo)
 {
-	vexs[from].vertex = from;
-
-	ArcNode* pArc = new ArcNode();
-	pArc->adjvex = to;
-	pArc->arcinfo.cost = cost;
-	pArc->nextarc = NULL;
-
-	if(vexs[from].firstarc == NULL)
+	if(vertex < 0 || vertex >= vexnum)
 	{
-		vexs[from].firstarc = pArc;
+		return false;
 	}
-	else
-	{
-		//TODO: cache the tail pointer to make the insert operation complete at O(1)
-		ArcNode* pTail = vexs[from].firstarc;
-		while(pTail->nextarc != NULL)
-		{
-			pTail = pTail->nextarc;
-		}
-		pTail->nextarc = pArc;
-	}
+	*pVertexInfo = vexs[vertex].vertexinfo;
+	return true;
+}
+
+//Put the vertex into the graph
+int GraphAdjList::PutVertex(const Vertex* pVertexInfo)
+{
+	vexs[vexnum].vertexinfo = *pVertexInfo;
+	vexs[vexnum].firstarc = NULL;
+	vexnum++;
+
+	return pVertexInfo->index;
+}
+
+//Find the first adjacent vertex index of the specified "vertex", return NULL if no such vertex
+ArcNode* GraphAdjList::FirstAdjVertex(int vertex)
+{
+	return vexs[vertex].firstarc;
+}
+
+//Find the next adjacent vertex index of the specified "vertex", relative to ArcNode "arc"
+//return NULL if no such vertex
+ArcNode* GraphAdjList::NextAdjVertex(int vertex, ArcNode* arc)
+{
+	//validation TODO
+	return arc->nextarc;
+}
+
+//Insert edge into the graph
+bool GraphAdjList::InsertEdge(const Edge* pEdge)
+{
+	//create new ArcNode
+	ArcNode* pArcNode = new ArcNode();
+	pArcNode->arcinfo = *pEdge;
+
+	//point to the adjacent arc list head
+	pArcNode->nextarc = vexs[pEdge->from].firstarc;
+
+	//update head with the new Arc
+	vexs[pEdge->from].firstarc = pArcNode;
 
 	arcnum++;
+	
+	return true;
+}
+bool GraphAdjList::InsertEdge(int from, int to, int cost)
+{
+	Edge edge;
+	edge.from = from;
+	edge.to = to;
+	edge.cost = cost;
+
+	return InsertEdge(&edge);
+}
+
+//Delete edge from the graph
+bool GraphAdjList::DeleteEdge(int from, int to)
+{
+	if(from < 0 || from >= vexnum)
+	{
+		return false;
+	}
+
+	ArcNode** pArc = &(vexs[from].firstarc);
+	ArcNode* pEntry;
+	while(*pArc != NULL)
+	{
+		pEntry = *pArc;
+
+		//delete it
+		if(pEntry->arcinfo.to == to)
+		{
+			*pArc = pEntry->nextarc;
+
+			delete pEntry;
+
+			return true;
+		}
+		else
+		{
+			pArc = &pEntry->nextarc;
+		}
+	}
+	return false;
+}
+
+void GraphAdjList::ReverseAdjList()
+{
+	ArcNode *prev, *curr, *next;
+	for(int i = 0; i < vexnum; i++)
+	{
+		prev = NULL;
+		curr = vexs[i].firstarc;
+		while(curr)
+		{
+			next = curr->nextarc;
+			curr->nextarc = prev;
+			prev = curr;
+			curr = next;
+		}
+		vexs[i].firstarc = prev;
+	}
+}
+
+//traverse
+void GraphAdjList::DFSTraverse(GraphEnumProc pProc, void* lParam)
+{
+	if(vexnum <= 0)
+	{
+		return;
+	}
+
+	bool* visited = new bool[vexnum];
+	memset(visited, 0, sizeof(bool) * vexnum);
+
+	for(int v = 0; v < vexnum; v++)
+	{
+		if(!visited[v])
+		{
+			if(!DFS(pProc, lParam, v, visited))
+			{
+				return;
+			}
+		}
+	}
+
+	delete visited;
+}
+
+bool GraphAdjList::DFS(GraphEnumProc pProc, void* lParam, int v, bool* visited)
+{
+	//visit vertex v now
+	visited[v] = true;
+	if(!pProc(&vexs[v].vertexinfo, lParam))
+	{
+		return false;
+	}
+
+	for(ArcNode* pArc = FirstAdjVertex(v); pArc != NULL; pArc = NextAdjVertex(v, pArc))
+	{
+		if(!visited[pArc->arcinfo.to])
+		{
+			if(!DFS(pProc, lParam, pArc->arcinfo.to, visited))
+			{
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+void GraphAdjList::BFSTraverse(GraphEnumProc pProc, void* lParam)
+{
+	if(vexnum <= 0)
+	{
+		return;
+	}
+	
+	bool* visited = new bool[vexnum];
+	memset(visited, 0, sizeof(bool) * vexnum);
+	
+	std::queue<int> que;
+	int u, w;
+	for(int v = 0; v < vexnum; v++)
+	{
+		if(visited[v])
+		{
+			continue;
+		}
+
+		//visit before enqueueing
+		visited[v] = true;
+		if(!pProc(&vexs[v].vertexinfo, lParam))
+		{
+			return;
+		}
+		que.push(v);
+	
+		while(!que.empty())
+		{
+			u = que.front();
+			que.pop();
+
+			for(ArcNode* pArc = FirstAdjVertex(u); pArc != NULL; pArc = NextAdjVertex(u, pArc))
+			{
+				w = pArc->arcinfo.to;
+				if(visited[w])
+				{
+					continue;
+				}
+
+				visited[w] = true;
+				if(!pProc(&vexs[w].vertexinfo, lParam))
+				{
+					return;
+				}
+				que.push(w);
+			}
+		}
+	}
+	
+	delete visited;
 }

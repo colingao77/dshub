@@ -4,35 +4,20 @@
 #include <string.h>
 #include <stdio.h>
 
-static bool InitGraph(GraphAdjArray* pGraph, const char* name, int initMode)
+typedef struct InitParam
 {
-	bool ret = false;
-	
-	FILE* input = NULL;
-	do 
-	{
-		input = fopen(name, "rb");
-		if(input == NULL)
-		{
-			break;
-		}
-		
-		if(initMode == MATRIX)
-		{
-			ret = pGraph->InitByMatrix(input);
-		}
-		else if(initMode == EDGE)
-		{
-			ret = pGraph->InitByEdges(input);
-		}
-	} while (false);
-	
-	if(input)
-	{
-		fclose(input);
-	}
-	return ret;
-}
+	const char* filename;
+	InitMode mode;
+}InitParam;
+
+static InitParam params[] = 
+{
+	{"./data/matrix1.in", MATRIX},
+	{"./data/edge1.in", EDGE},
+
+	{"./data/matrix2.in", MATRIX},
+	{"./data/edge2.in", EDGE}
+};
 
 void TestGraphAdjArray()
 {
@@ -40,19 +25,23 @@ void TestGraphAdjArray()
 	{
 		return;
 	}
-	FILE *input = NULL;
 
-	GraphAdjArray graph1;
-	InitGraph(&graph1, "./data/matrix1.in", MATRIX);
-	graph1.Print();
-	graph1.DFS(PrintGraphProc, NULL);
-	printf("\n");
+	for(int i = 0; i < COUNT_OF(params); i++)
+	{
+		GraphAdjArray graph1;
+		graph1.Init(params[i].filename, params[i].mode);
+		
+		printf("Initialized by %s\n", ((params[i].mode == MATRIX) ? "MATRIX" : "EDGE"));
+		graph1.Print();
 
-	GraphAdjArray graph2;
-	InitGraph(&graph2, "./data/edge1.in", EDGE);
-	graph2.Print();
-	graph2.BFS(PrintGraphProc, NULL);
-	printf("\n");
+		printf("DFS: ");
+		graph1.DFSTraverse(PrintGraphProc, NULL);
+		printf("\n");
+
+		printf("BFS: ");
+		graph1.BFSTraverse(PrintGraphProc, NULL);
+		printf("\n");
+	}
 
 	PrintSep(__FILE__);
 }

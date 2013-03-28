@@ -9,8 +9,10 @@ Graph::~Graph()
 {
 }
 
-bool PrintGraphProc(int vertex, void* lParam)
+bool PrintGraphProc(Vertex* pVertex, void* lParam)
 {
-	printf("%d ", vertex);
+//	printf("%d ", pVertex->index);
+	char c = 'A' + pVertex->index;
+	printf("%c ", c);
 	return true;
 }

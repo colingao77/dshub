@@ -7,14 +7,13 @@
 
 typedef struct ArcNode
 {
-	int adjvex;
-	ArcType arcinfo;
+	Edge arcinfo;
 	struct ArcNode *nextarc;
 }ArcNode;
 
 typedef struct VertexNode
 {
-	int vertex;
+	Vertex vertexinfo;
 	ArcNode *firstarc;
 }VertexNode;
 
@@ -29,11 +28,38 @@ public:
 	GraphAdjList();
 	virtual ~GraphAdjList();
 
+	bool Init(const char* filename, InitMode mode);
 	bool InitByMatrix(FILE* stream);
 	bool InitByEdges(FILE* stream);
 	void Print(bool all = false);
 
-	void InsertArc(int from, int to, int cost);
+	//traverse
+	void DFSTraverse(GraphEnumProc pProc, void* lParam);
+	void BFSTraverse(GraphEnumProc pProc, void* lParam);
+
+	//Get the vertex information by vertex index
+	virtual bool GetVertex(int vertex, Vertex* pVertexInfo);
+	
+	//Put the vertex into the graph
+	virtual int PutVertex(const Vertex* pVertexInfo);
+	
+	//Find the first adjacent vertex index of the specified "vertex", return NULL if no such vertex
+	virtual ArcNode* FirstAdjVertex(int vertex);
+	
+	//Find the next adjacent vertex index of the specified "vertex", relative to ArcNode "arc"
+	//return NULL if no such vertex
+	virtual ArcNode* NextAdjVertex(int vertex, ArcNode* arc);
+	
+	//Insert edge into the graph
+	virtual bool InsertEdge(const Edge* pEdge);
+	virtual bool InsertEdge(int from, int to, int cost);
+	
+	//Delete edge from the graph
+	virtual bool DeleteEdge(int from, int to);
+
+private:
+	bool DFS(GraphEnumProc pProc, void* lParam, int v, bool* visited);
+	void ReverseAdjList();
 };
 
 #endif
